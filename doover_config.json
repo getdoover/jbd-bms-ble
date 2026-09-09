@@ -8,11 +8,10 @@
         "description": "Monitor and configure a JBD / Xiaoxiang Bluetooth BMS (iTechworld and most LiFePO4 batteries with a Bluetooth app) from a Doovit.",
         "long_description": "README.md",
         "depends_on": [],
-        "owner_org_key": "36a22e32-ab81-4a39-b400-869d532a052d",
+        "organisation_id": null,
         "image_name": "ghcr.io/getdoover/jbd-bms-ble:main",
-        "container_registry_profile_key": "88953909-e9c4-4f81-9ec0-56239d4b0a2e",
+        "container_registry_profile_id": 93955828574386692,
         "build_args": "--platform linux/amd64,linux/arm64",
-        "repo_branch": "main",
         "staging_config": {},
         "config_schema": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
