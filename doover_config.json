@@ -1,0 +1,1009 @@
+{
+    "jbd_bms_ble": {
+        "name": "jbd_bms_ble",
+        "display_name": "JBD Bluetooth BMS",
+        "type": "DEV",
+        "visibility": "PUB",
+        "allow_many": true,
+        "description": "Monitor and configure a JBD / Xiaoxiang Bluetooth BMS (iTechworld and most LiFePO4 batteries with a Bluetooth app) from a Doovit.",
+        "long_description": "README.md",
+        "depends_on": [],
+        "owner_org_key": "36a22e32-ab81-4a39-b400-869d532a052d",
+        "image_name": "ghcr.io/getdoover/jbd-bms-ble:main",
+        "container_registry_profile_key": "88953909-e9c4-4f81-9ec0-56239d4b0a2e",
+        "build_args": "--platform linux/amd64,linux/arm64",
+        "repo_branch": "main",
+        "staging_config": {},
+        "config_schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "",
+            "title": "$default",
+            "type": "object",
+            "properties": {
+                "device_address": {
+                    "title": "Battery Bluetooth Address",
+                    "x-name": "device_address",
+                    "x-hidden": false,
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "x-required": false,
+                    "description": "MAC address of the battery's BMS, e.g. A5:C2:37:17:A5:34. Leave blank, deploy, and press 'Scan for batteries' on the dashboard to find it.",
+                    "default": "",
+                    "x-position": 0
+                },
+                "poll_interval": {
+                    "title": "Poll Interval (seconds)",
+                    "x-name": "poll_interval",
+                    "x-hidden": false,
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "x-required": false,
+                    "description": "How often to read the battery.",
+                    "default": 10,
+                    "x-position": 1,
+                    "minimum": 2,
+                    "maximum": 600
+                },
+                "settings_refresh_minutes": {
+                    "title": "Settings Refresh (minutes)",
+                    "x-name": "settings_refresh_minutes",
+                    "x-hidden": false,
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "x-required": false,
+                    "description": "How often the BMS configuration registers are re-read. They rarely change.",
+                    "default": 60,
+                    "x-position": 2,
+                    "minimum": 1,
+                    "maximum": 1440
+                },
+                "disconnect_between_polls": {
+                    "title": "Disconnect Between Polls",
+                    "x-name": "disconnect_between_polls",
+                    "x-hidden": false,
+                    "type": [
+                        "boolean",
+                        "null"
+                    ],
+                    "x-required": false,
+                    "description": "Release the Bluetooth link after each poll so a phone app can still connect to the battery. Turn off for faster, lower-latency polling.",
+                    "default": true,
+                    "x-position": 3
+                },
+                "allow_settings_write": {
+                    "title": "Allow Settings Changes",
+                    "x-name": "allow_settings_write",
+                    "x-hidden": false,
+                    "type": [
+                        "boolean",
+                        "null"
+                    ],
+                    "x-required": false,
+                    "description": "Let the BMS protection thresholds and capacity settings be changed from the dashboard. Off by default: a wrong value can stop the battery charging or discharging.",
+                    "default": false,
+                    "x-position": 4
+                },
+                "allow_mosfet_control": {
+                    "title": "Allow Charge/Discharge Switching",
+                    "x-name": "allow_mosfet_control",
+                    "x-hidden": false,
+                    "type": [
+                        "boolean",
+                        "null"
+                    ],
+                    "x-required": false,
+                    "description": "Let the charge and discharge MOSFETs be switched from the dashboard. Switching discharge off cuts power to everything on the battery, including the device running this app.",
+                    "default": false,
+                    "x-position": 5
+                },
+                "low_soc_warning": {
+                    "title": "Low State of Charge Warning (%)",
+                    "x-name": "low_soc_warning",
+                    "x-hidden": false,
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "x-required": false,
+                    "description": "Show a warning and send a notification when the state of charge drops below this.",
+                    "default": 20,
+                    "x-position": 6,
+                    "minimum": 0,
+                    "maximum": 100
+                }
+            },
+            "additionalElements": true,
+            "required": []
+        },
+        "ui_schema": {
+            "displayString": "$config.app().APP_DISPLAY_NAME",
+            "hidden": "$config.app().interpreter_hidden:boolean:false",
+            "fullWidth": "$config.app().interpreter_full_width:boolean:false",
+            "position": "$config.app().dv_app_position:number:100",
+            "icon": null,
+            "colour": null,
+            "defaultOpen": "$config.app().dv_app_default_open:boolean",
+            "type": "uiApplication",
+            "name": "$config.app().APP_KEY",
+            "children": {
+                "soc": {
+                    "name": "soc",
+                    "type": "uiVariable",
+                    "displayString": "State of Charge",
+                    "showActivity": true,
+                    "position": 51,
+                    "hidden": false,
+                    "units": "%",
+                    "varType": "float",
+                    "currentValue": "$tag.app().soc:number:null",
+                    "decPrecision": 0,
+                    "ranges": [
+                        {
+                            "min": 0,
+                            "max": 20,
+                            "colour": "red",
+                            "show_on_graph": true,
+                            "label": "Low"
+                        },
+                        {
+                            "min": 20,
+                            "max": 60,
+                            "colour": "yellow",
+                            "show_on_graph": true,
+                            "label": "Medium"
+                        },
+                        {
+                            "min": 60,
+                            "max": 100,
+                            "colour": "green",
+                            "show_on_graph": true,
+                            "label": "Good"
+                        }
+                    ],
+                    "live": true
+                },
+                "pack_voltage": {
+                    "name": "pack_voltage",
+                    "type": "uiVariable",
+                    "displayString": "Battery Voltage",
+                    "showActivity": true,
+                    "position": 52,
+                    "hidden": false,
+                    "units": "V",
+                    "varType": "float",
+                    "currentValue": "$tag.app().pack_voltage:number:null",
+                    "decPrecision": 2,
+                    "live": true
+                },
+                "current": {
+                    "name": "current",
+                    "type": "uiVariable",
+                    "displayString": "Current",
+                    "helpString": "Positive while charging, negative while discharging.",
+                    "showActivity": true,
+                    "position": 53,
+                    "hidden": false,
+                    "units": "A",
+                    "varType": "float",
+                    "currentValue": "$tag.app().current:number:null",
+                    "decPrecision": 2,
+                    "live": true
+                },
+                "power": {
+                    "name": "power",
+                    "type": "uiVariable",
+                    "displayString": "Power",
+                    "showActivity": true,
+                    "position": 54,
+                    "hidden": false,
+                    "units": "W",
+                    "varType": "float",
+                    "currentValue": "$tag.app().power:number:null",
+                    "decPrecision": 0,
+                    "live": true
+                },
+                "charge_state": {
+                    "name": "charge_state",
+                    "type": "uiVariable",
+                    "displayString": "State",
+                    "showActivity": true,
+                    "position": 55,
+                    "hidden": false,
+                    "varType": "string",
+                    "currentValue": "$tag.app().charge_state:string:\"unknown\""
+                },
+                "remaining_ah": {
+                    "name": "remaining_ah",
+                    "type": "uiVariable",
+                    "displayString": "Remaining Capacity",
+                    "showActivity": true,
+                    "position": 56,
+                    "hidden": false,
+                    "units": "Ah",
+                    "varType": "float",
+                    "currentValue": "$tag.app().remaining_ah:number:null",
+                    "decPrecision": 1,
+                    "live": true
+                },
+                "temperature": {
+                    "name": "temperature",
+                    "type": "uiVariable",
+                    "displayString": "Battery Temperature",
+                    "showActivity": true,
+                    "position": 57,
+                    "hidden": false,
+                    "units": "\u00b0C",
+                    "varType": "float",
+                    "currentValue": "$tag.app().temperature:number:null",
+                    "decPrecision": 1,
+                    "ranges": [
+                        {
+                            "min": -20,
+                            "max": 0,
+                            "colour": "blue",
+                            "show_on_graph": true,
+                            "label": "Cold"
+                        },
+                        {
+                            "min": 0,
+                            "max": 45,
+                            "colour": "green",
+                            "show_on_graph": true,
+                            "label": "Normal"
+                        },
+                        {
+                            "min": 45,
+                            "max": 80,
+                            "colour": "red",
+                            "show_on_graph": true,
+                            "label": "Hot"
+                        }
+                    ],
+                    "live": true
+                },
+                "comms_warning": {
+                    "name": "comms_warning",
+                    "type": "uiWarningIndicator",
+                    "displayString": "No communication with battery",
+                    "position": 58,
+                    "hidden": "$tag.app().comms_ok:boolean:true",
+                    "currentValue": "$cmds.app().comms_warning",
+                    "can_cancel": true
+                },
+                "protection_warning": {
+                    "name": "protection_warning",
+                    "type": "uiWarningIndicator",
+                    "displayString": "BMS protection active",
+                    "position": 59,
+                    "hidden": "$tag.app().protection_clear:boolean:true",
+                    "currentValue": "$cmds.app().protection_warning",
+                    "can_cancel": true
+                },
+                "low_soc_warning": {
+                    "name": "low_soc_warning",
+                    "type": "uiWarningIndicator",
+                    "displayString": "Battery state of charge is low",
+                    "position": 60,
+                    "hidden": "$tag.app().soc_ok:boolean:true",
+                    "currentValue": "$cmds.app().low_soc_warning",
+                    "can_cancel": true
+                },
+                "charge_off_warning": {
+                    "name": "charge_off_warning",
+                    "type": "uiWarningIndicator",
+                    "displayString": "Charging is switched off at the BMS",
+                    "position": 61,
+                    "hidden": "$tag.app().charge_fet:boolean:true",
+                    "currentValue": "$cmds.app().charge_off_warning",
+                    "can_cancel": true
+                },
+                "discharge_off_warning": {
+                    "name": "discharge_off_warning",
+                    "type": "uiWarningIndicator",
+                    "displayString": "Discharging is switched off at the BMS",
+                    "position": 62,
+                    "hidden": "$tag.app().discharge_fet:boolean:true",
+                    "currentValue": "$cmds.app().discharge_off_warning",
+                    "can_cancel": true
+                },
+                "cells": {
+                    "name": "cells",
+                    "type": "uiSubmodule",
+                    "displayString": "Cells",
+                    "showActivity": true,
+                    "position": 68,
+                    "hidden": false,
+                    "children": {
+                        "cell_max": {
+                            "name": "cell_max",
+                            "type": "uiVariable",
+                            "displayString": "Highest Cell",
+                            "showActivity": true,
+                            "position": 63,
+                            "hidden": false,
+                            "units": "mV",
+                            "varType": "float",
+                            "currentValue": "$tag.app().cell_max:number:null",
+                            "decPrecision": 0,
+                            "live": true
+                        },
+                        "cell_min": {
+                            "name": "cell_min",
+                            "type": "uiVariable",
+                            "displayString": "Lowest Cell",
+                            "showActivity": true,
+                            "position": 64,
+                            "hidden": false,
+                            "units": "mV",
+                            "varType": "float",
+                            "currentValue": "$tag.app().cell_min:number:null",
+                            "decPrecision": 0,
+                            "live": true
+                        },
+                        "cell_delta": {
+                            "name": "cell_delta",
+                            "type": "uiVariable",
+                            "displayString": "Cell Spread",
+                            "showActivity": true,
+                            "position": 65,
+                            "hidden": false,
+                            "units": "mV",
+                            "varType": "float",
+                            "currentValue": "$tag.app().cell_delta:number:null",
+                            "decPrecision": 0,
+                            "ranges": [
+                                {
+                                    "min": 0,
+                                    "max": 30,
+                                    "colour": "green",
+                                    "show_on_graph": true,
+                                    "label": "Balanced"
+                                },
+                                {
+                                    "min": 30,
+                                    "max": 80,
+                                    "colour": "yellow",
+                                    "show_on_graph": true,
+                                    "label": "Drifting"
+                                },
+                                {
+                                    "min": 80,
+                                    "max": 500,
+                                    "colour": "red",
+                                    "show_on_graph": true,
+                                    "label": "Unbalanced"
+                                }
+                            ],
+                            "live": true
+                        },
+                        "cells_text": {
+                            "name": "cells_text",
+                            "type": "uiVariable",
+                            "displayString": "Cell Voltages",
+                            "showActivity": true,
+                            "position": 66,
+                            "hidden": false,
+                            "varType": "string",
+                            "currentValue": "$tag.app().cells_text:string:\"\""
+                        },
+                        "balancing": {
+                            "name": "balancing",
+                            "type": "uiVariable",
+                            "displayString": "Balancing",
+                            "showActivity": true,
+                            "position": 67,
+                            "hidden": false,
+                            "varType": "string",
+                            "currentValue": "$tag.app().balancing:string:\"none\""
+                        }
+                    }
+                },
+                "details": {
+                    "name": "details",
+                    "type": "uiSubmodule",
+                    "displayString": "Details",
+                    "showActivity": true,
+                    "position": 80,
+                    "hidden": false,
+                    "children": {
+                        "cycles": {
+                            "name": "cycles",
+                            "type": "uiVariable",
+                            "displayString": "Cycles",
+                            "showActivity": true,
+                            "position": 69,
+                            "hidden": false,
+                            "varType": "float",
+                            "currentValue": "$tag.app().cycles:number:null",
+                            "decPrecision": 0
+                        },
+                        "nominal_ah": {
+                            "name": "nominal_ah",
+                            "type": "uiVariable",
+                            "displayString": "Rated Capacity",
+                            "showActivity": true,
+                            "position": 70,
+                            "hidden": false,
+                            "units": "Ah",
+                            "varType": "float",
+                            "currentValue": "$tag.app().nominal_ah:number:null",
+                            "decPrecision": 1
+                        },
+                        "cell_count": {
+                            "name": "cell_count",
+                            "type": "uiVariable",
+                            "displayString": "Cell Count",
+                            "showActivity": true,
+                            "position": 71,
+                            "hidden": false,
+                            "varType": "float",
+                            "currentValue": "$tag.app().cell_count:number:null",
+                            "decPrecision": 0
+                        },
+                        "charge_fet": {
+                            "name": "charge_fet",
+                            "type": "uiVariable",
+                            "displayString": "Charge MOSFET On",
+                            "showActivity": true,
+                            "position": 72,
+                            "hidden": false,
+                            "varType": "bool",
+                            "currentValue": "$tag.app().charge_fet:boolean:true",
+                            "live": true
+                        },
+                        "discharge_fet": {
+                            "name": "discharge_fet",
+                            "type": "uiVariable",
+                            "displayString": "Discharge MOSFET On",
+                            "showActivity": true,
+                            "position": 73,
+                            "hidden": false,
+                            "varType": "bool",
+                            "currentValue": "$tag.app().discharge_fet:boolean:true",
+                            "live": true
+                        },
+                        "protection_text": {
+                            "name": "protection_text",
+                            "type": "uiVariable",
+                            "displayString": "Protection",
+                            "showActivity": true,
+                            "position": 74,
+                            "hidden": false,
+                            "varType": "string",
+                            "currentValue": "$tag.app().protection_text:string:\"none\""
+                        },
+                        "hardware_version": {
+                            "name": "hardware_version",
+                            "type": "uiVariable",
+                            "displayString": "BMS Model",
+                            "showActivity": true,
+                            "position": 75,
+                            "hidden": false,
+                            "varType": "string",
+                            "currentValue": "$tag.app().hardware_version:string:\"\""
+                        },
+                        "software_version": {
+                            "name": "software_version",
+                            "type": "uiVariable",
+                            "displayString": "BMS Firmware",
+                            "showActivity": true,
+                            "position": 76,
+                            "hidden": false,
+                            "varType": "string",
+                            "currentValue": "$tag.app().software_version:string:\"\""
+                        },
+                        "manufacture_date": {
+                            "name": "manufacture_date",
+                            "type": "uiVariable",
+                            "displayString": "Manufactured",
+                            "showActivity": true,
+                            "position": 77,
+                            "hidden": false,
+                            "varType": "string",
+                            "currentValue": "$tag.app().manufacture_date:string:\"\""
+                        },
+                        "device_address": {
+                            "name": "device_address",
+                            "type": "uiVariable",
+                            "displayString": "Bluetooth Address",
+                            "showActivity": true,
+                            "position": 78,
+                            "hidden": false,
+                            "varType": "string",
+                            "currentValue": "$tag.app().device_address:string:\"\""
+                        },
+                        "last_read_text": {
+                            "name": "last_read_text",
+                            "type": "uiVariable",
+                            "displayString": "Last Read",
+                            "showActivity": true,
+                            "position": 79,
+                            "hidden": false,
+                            "varType": "string",
+                            "currentValue": "$tag.app().last_read_text:string:\"never\""
+                        }
+                    },
+                    "defaultOpen": false
+                },
+                "controls": {
+                    "name": "controls",
+                    "type": "uiSubmodule",
+                    "displayString": "Controls",
+                    "showActivity": true,
+                    "position": 86,
+                    "hidden": false,
+                    "children": {
+                        "charge_switch": {
+                            "name": "charge_switch",
+                            "type": "uiSelect",
+                            "displayString": "Charging",
+                            "helpString": "Switches the BMS charge MOSFET. Needs 'Allow Charge/Discharge Switching' in the app config.",
+                            "position": 81,
+                            "hidden": false,
+                            "currentValue": "$cmds.app().charge_switch",
+                            "requiresConfirm": true,
+                            "options": {
+                                "on": {
+                                    "name": "on",
+                                    "displayString": "On",
+                                    "type": "uiElement"
+                                },
+                                "off": {
+                                    "name": "off",
+                                    "displayString": "Off",
+                                    "type": "uiElement"
+                                }
+                            }
+                        },
+                        "discharge_switch": {
+                            "name": "discharge_switch",
+                            "type": "uiSelect",
+                            "displayString": "Discharging",
+                            "helpString": "Switches the BMS discharge MOSFET. Off cuts power to every load on the battery.",
+                            "position": 82,
+                            "hidden": false,
+                            "currentValue": "$cmds.app().discharge_switch",
+                            "requiresConfirm": true,
+                            "options": {
+                                "on": {
+                                    "name": "on",
+                                    "displayString": "On",
+                                    "type": "uiElement"
+                                },
+                                "off": {
+                                    "name": "off",
+                                    "displayString": "Off",
+                                    "type": "uiElement"
+                                }
+                            }
+                        },
+                        "scan_batteries": {
+                            "name": "scan_batteries",
+                            "type": "uiButton",
+                            "displayString": "Scan for batteries",
+                            "position": 83,
+                            "hidden": false,
+                            "currentValue": "$cmds.app().scan_batteries"
+                        },
+                        "scan_results": {
+                            "name": "scan_results",
+                            "type": "uiVariable",
+                            "displayString": "Scan Results",
+                            "showActivity": true,
+                            "position": 84,
+                            "hidden": false,
+                            "varType": "string",
+                            "currentValue": "$tag.app().scan_results:string:\"\""
+                        },
+                        "reload_settings": {
+                            "name": "reload_settings",
+                            "type": "uiButton",
+                            "displayString": "Reload settings from BMS",
+                            "position": 85,
+                            "hidden": false,
+                            "currentValue": "$cmds.app().reload_settings"
+                        }
+                    },
+                    "defaultOpen": false
+                },
+                "settings": {
+                    "name": "settings",
+                    "type": "uiSubmodule",
+                    "displayString": "BMS Settings",
+                    "showActivity": true,
+                    "position": 119,
+                    "hidden": false,
+                    "children": {
+                        "settings_status": {
+                            "name": "settings_status",
+                            "type": "uiVariable",
+                            "displayString": "Settings Status",
+                            "showActivity": true,
+                            "position": 87,
+                            "hidden": false,
+                            "varType": "string",
+                            "currentValue": "$tag.app().settings_status:string:\"\""
+                        },
+                        "settings_read_text": {
+                            "name": "settings_read_text",
+                            "type": "uiVariable",
+                            "displayString": "Settings Read",
+                            "showActivity": true,
+                            "position": 88,
+                            "hidden": false,
+                            "varType": "string",
+                            "currentValue": "$tag.app().settings_read_text:string:\"never\""
+                        },
+                        "design_capacity": {
+                            "name": "design_capacity",
+                            "type": "uiFloatInput",
+                            "displayString": "Design Capacity",
+                            "position": 89,
+                            "hidden": false,
+                            "units": "Ah",
+                            "currentValue": "$cmds.app().design_capacity",
+                            "requiresConfirm": true,
+                            "min": 1,
+                            "max": 2000
+                        },
+                        "cycle_capacity": {
+                            "name": "cycle_capacity",
+                            "type": "uiFloatInput",
+                            "displayString": "Cycle Capacity",
+                            "position": 90,
+                            "hidden": false,
+                            "units": "Ah",
+                            "currentValue": "$cmds.app().cycle_capacity",
+                            "requiresConfirm": true,
+                            "min": 1,
+                            "max": 2000
+                        },
+                        "cell_full_voltage": {
+                            "name": "cell_full_voltage",
+                            "type": "uiFloatInput",
+                            "displayString": "Cell Voltage at 100%",
+                            "position": 91,
+                            "hidden": false,
+                            "units": "mV",
+                            "currentValue": "$cmds.app().cell_full_voltage",
+                            "requiresConfirm": true,
+                            "min": 2500,
+                            "max": 4500
+                        },
+                        "cell_empty_voltage": {
+                            "name": "cell_empty_voltage",
+                            "type": "uiFloatInput",
+                            "displayString": "Cell Voltage at 0%",
+                            "position": 92,
+                            "hidden": false,
+                            "units": "mV",
+                            "currentValue": "$cmds.app().cell_empty_voltage",
+                            "requiresConfirm": true,
+                            "min": 1500,
+                            "max": 3500
+                        },
+                        "charge_over_temp": {
+                            "name": "charge_over_temp",
+                            "type": "uiFloatInput",
+                            "displayString": "Charge Over-Temperature",
+                            "position": 93,
+                            "hidden": false,
+                            "units": "\u00b0C",
+                            "currentValue": "$cmds.app().charge_over_temp",
+                            "requiresConfirm": true,
+                            "min": 0,
+                            "max": 120
+                        },
+                        "charge_over_temp_release": {
+                            "name": "charge_over_temp_release",
+                            "type": "uiFloatInput",
+                            "displayString": "Charge Over-Temp Release",
+                            "position": 94,
+                            "hidden": false,
+                            "units": "\u00b0C",
+                            "currentValue": "$cmds.app().charge_over_temp_release",
+                            "requiresConfirm": true,
+                            "min": 0,
+                            "max": 120
+                        },
+                        "charge_under_temp": {
+                            "name": "charge_under_temp",
+                            "type": "uiFloatInput",
+                            "displayString": "Charge Under-Temperature",
+                            "position": 95,
+                            "hidden": false,
+                            "units": "\u00b0C",
+                            "currentValue": "$cmds.app().charge_under_temp",
+                            "requiresConfirm": true,
+                            "min": -40,
+                            "max": 30
+                        },
+                        "charge_under_temp_release": {
+                            "name": "charge_under_temp_release",
+                            "type": "uiFloatInput",
+                            "displayString": "Charge Under-Temp Release",
+                            "position": 96,
+                            "hidden": false,
+                            "units": "\u00b0C",
+                            "currentValue": "$cmds.app().charge_under_temp_release",
+                            "requiresConfirm": true,
+                            "min": -40,
+                            "max": 30
+                        },
+                        "discharge_over_temp": {
+                            "name": "discharge_over_temp",
+                            "type": "uiFloatInput",
+                            "displayString": "Discharge Over-Temperature",
+                            "position": 97,
+                            "hidden": false,
+                            "units": "\u00b0C",
+                            "currentValue": "$cmds.app().discharge_over_temp",
+                            "requiresConfirm": true,
+                            "min": 0,
+                            "max": 120
+                        },
+                        "discharge_over_temp_release": {
+                            "name": "discharge_over_temp_release",
+                            "type": "uiFloatInput",
+                            "displayString": "Discharge Over-Temp Release",
+                            "position": 98,
+                            "hidden": false,
+                            "units": "\u00b0C",
+                            "currentValue": "$cmds.app().discharge_over_temp_release",
+                            "requiresConfirm": true,
+                            "min": 0,
+                            "max": 120
+                        },
+                        "discharge_under_temp": {
+                            "name": "discharge_under_temp",
+                            "type": "uiFloatInput",
+                            "displayString": "Discharge Under-Temperature",
+                            "position": 99,
+                            "hidden": false,
+                            "units": "\u00b0C",
+                            "currentValue": "$cmds.app().discharge_under_temp",
+                            "requiresConfirm": true,
+                            "min": -40,
+                            "max": 30
+                        },
+                        "discharge_under_temp_release": {
+                            "name": "discharge_under_temp_release",
+                            "type": "uiFloatInput",
+                            "displayString": "Discharge Under-Temp Release",
+                            "position": 100,
+                            "hidden": false,
+                            "units": "\u00b0C",
+                            "currentValue": "$cmds.app().discharge_under_temp_release",
+                            "requiresConfirm": true,
+                            "min": -40,
+                            "max": 30
+                        },
+                        "pack_over_voltage": {
+                            "name": "pack_over_voltage",
+                            "type": "uiFloatInput",
+                            "displayString": "Pack Over-Voltage",
+                            "position": 101,
+                            "hidden": false,
+                            "units": "V",
+                            "currentValue": "$cmds.app().pack_over_voltage",
+                            "requiresConfirm": true,
+                            "min": 4,
+                            "max": 80
+                        },
+                        "pack_over_voltage_release": {
+                            "name": "pack_over_voltage_release",
+                            "type": "uiFloatInput",
+                            "displayString": "Pack Over-Voltage Release",
+                            "position": 102,
+                            "hidden": false,
+                            "units": "V",
+                            "currentValue": "$cmds.app().pack_over_voltage_release",
+                            "requiresConfirm": true,
+                            "min": 4,
+                            "max": 80
+                        },
+                        "pack_under_voltage": {
+                            "name": "pack_under_voltage",
+                            "type": "uiFloatInput",
+                            "displayString": "Pack Under-Voltage",
+                            "position": 103,
+                            "hidden": false,
+                            "units": "V",
+                            "currentValue": "$cmds.app().pack_under_voltage",
+                            "requiresConfirm": true,
+                            "min": 4,
+                            "max": 80
+                        },
+                        "pack_under_voltage_release": {
+                            "name": "pack_under_voltage_release",
+                            "type": "uiFloatInput",
+                            "displayString": "Pack Under-Voltage Release",
+                            "position": 104,
+                            "hidden": false,
+                            "units": "V",
+                            "currentValue": "$cmds.app().pack_under_voltage_release",
+                            "requiresConfirm": true,
+                            "min": 4,
+                            "max": 80
+                        },
+                        "cell_over_voltage": {
+                            "name": "cell_over_voltage",
+                            "type": "uiFloatInput",
+                            "displayString": "Cell Over-Voltage",
+                            "position": 105,
+                            "hidden": false,
+                            "units": "mV",
+                            "currentValue": "$cmds.app().cell_over_voltage",
+                            "requiresConfirm": true,
+                            "min": 2500,
+                            "max": 4500
+                        },
+                        "cell_over_voltage_release": {
+                            "name": "cell_over_voltage_release",
+                            "type": "uiFloatInput",
+                            "displayString": "Cell Over-Voltage Release",
+                            "position": 106,
+                            "hidden": false,
+                            "units": "mV",
+                            "currentValue": "$cmds.app().cell_over_voltage_release",
+                            "requiresConfirm": true,
+                            "min": 2500,
+                            "max": 4500
+                        },
+                        "cell_under_voltage": {
+                            "name": "cell_under_voltage",
+                            "type": "uiFloatInput",
+                            "displayString": "Cell Under-Voltage",
+                            "position": 107,
+                            "hidden": false,
+                            "units": "mV",
+                            "currentValue": "$cmds.app().cell_under_voltage",
+                            "requiresConfirm": true,
+                            "min": 1500,
+                            "max": 3500
+                        },
+                        "cell_under_voltage_release": {
+                            "name": "cell_under_voltage_release",
+                            "type": "uiFloatInput",
+                            "displayString": "Cell Under-Voltage Release",
+                            "position": 108,
+                            "hidden": false,
+                            "units": "mV",
+                            "currentValue": "$cmds.app().cell_under_voltage_release",
+                            "requiresConfirm": true,
+                            "min": 1500,
+                            "max": 3500
+                        },
+                        "charge_over_current": {
+                            "name": "charge_over_current",
+                            "type": "uiFloatInput",
+                            "displayString": "Charge Over-Current",
+                            "position": 109,
+                            "hidden": false,
+                            "units": "A",
+                            "currentValue": "$cmds.app().charge_over_current",
+                            "requiresConfirm": true,
+                            "min": 1,
+                            "max": 500
+                        },
+                        "discharge_over_current": {
+                            "name": "discharge_over_current",
+                            "type": "uiFloatInput",
+                            "displayString": "Discharge Over-Current",
+                            "position": 110,
+                            "hidden": false,
+                            "units": "A",
+                            "currentValue": "$cmds.app().discharge_over_current",
+                            "requiresConfirm": true,
+                            "min": 1,
+                            "max": 500
+                        },
+                        "balance_start_voltage": {
+                            "name": "balance_start_voltage",
+                            "type": "uiFloatInput",
+                            "displayString": "Balance Start Voltage",
+                            "position": 111,
+                            "hidden": false,
+                            "units": "mV",
+                            "currentValue": "$cmds.app().balance_start_voltage",
+                            "requiresConfirm": true,
+                            "min": 2500,
+                            "max": 4500
+                        },
+                        "balance_window": {
+                            "name": "balance_window",
+                            "type": "uiFloatInput",
+                            "displayString": "Balance Window",
+                            "position": 112,
+                            "hidden": false,
+                            "units": "mV",
+                            "currentValue": "$cmds.app().balance_window",
+                            "requiresConfirm": true,
+                            "min": 2,
+                            "max": 500
+                        },
+                        "cell_soc_80_voltage": {
+                            "name": "cell_soc_80_voltage",
+                            "type": "uiFloatInput",
+                            "displayString": "Cell Voltage at 80%",
+                            "position": 113,
+                            "hidden": false,
+                            "units": "mV",
+                            "currentValue": "$cmds.app().cell_soc_80_voltage",
+                            "requiresConfirm": true,
+                            "min": 2500,
+                            "max": 4500
+                        },
+                        "cell_soc_60_voltage": {
+                            "name": "cell_soc_60_voltage",
+                            "type": "uiFloatInput",
+                            "displayString": "Cell Voltage at 60%",
+                            "position": 114,
+                            "hidden": false,
+                            "units": "mV",
+                            "currentValue": "$cmds.app().cell_soc_60_voltage",
+                            "requiresConfirm": true,
+                            "min": 2500,
+                            "max": 4500
+                        },
+                        "cell_soc_40_voltage": {
+                            "name": "cell_soc_40_voltage",
+                            "type": "uiFloatInput",
+                            "displayString": "Cell Voltage at 40%",
+                            "position": 115,
+                            "hidden": false,
+                            "units": "mV",
+                            "currentValue": "$cmds.app().cell_soc_40_voltage",
+                            "requiresConfirm": true,
+                            "min": 2500,
+                            "max": 4500
+                        },
+                        "cell_soc_20_voltage": {
+                            "name": "cell_soc_20_voltage",
+                            "type": "uiFloatInput",
+                            "displayString": "Cell Voltage at 20%",
+                            "position": 116,
+                            "hidden": false,
+                            "units": "mV",
+                            "currentValue": "$cmds.app().cell_soc_20_voltage",
+                            "requiresConfirm": true,
+                            "min": 2500,
+                            "max": 4500
+                        },
+                        "cell_over_voltage_hard": {
+                            "name": "cell_over_voltage_hard",
+                            "type": "uiFloatInput",
+                            "displayString": "Cell Over-Voltage (hard)",
+                            "position": 117,
+                            "hidden": false,
+                            "units": "mV",
+                            "currentValue": "$cmds.app().cell_over_voltage_hard",
+                            "requiresConfirm": true,
+                            "min": 2500,
+                            "max": 4800
+                        },
+                        "cell_under_voltage_hard": {
+                            "name": "cell_under_voltage_hard",
+                            "type": "uiFloatInput",
+                            "displayString": "Cell Under-Voltage (hard)",
+                            "position": 118,
+                            "hidden": false,
+                            "units": "mV",
+                            "currentValue": "$cmds.app().cell_under_voltage_hard",
+                            "requiresConfirm": true,
+                            "min": 1000,
+                            "max": 3500
+                        }
+                    },
+                    "defaultOpen": false
+                }
+            }
+        }
+    }
+}

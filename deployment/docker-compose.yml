@@ -1,0 +1,14 @@
+services:
+  jbd_bms_ble:
+    image: ghcr.io/getdoover/jbd-bms-ble:main
+    restart: unless-stopped
+    # Host networking so the container shares the device's Bluetooth stack.
+    network_mode: host
+    environment:
+      - APP_KEY=$APP_KEY
+      - HEALTHCHECK_PORT=$HEALTHCHECK_PORT
+      # bleak talks to BlueZ over the host's system D-Bus.
+      - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket
+    volumes:
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
+      - /etc/machine-id:/etc/machine-id:ro

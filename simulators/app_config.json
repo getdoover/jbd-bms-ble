@@ -1,0 +1,9 @@
+{
+    "device_address": "A5:C2:37:17:A5:34",
+    "poll_interval": 10,
+    "settings_refresh_minutes": 60,
+    "disconnect_between_polls": true,
+    "allow_settings_write": false,
+    "allow_mosfet_control": false,
+    "low_soc_warning": 20
+}

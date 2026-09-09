@@ -1,0 +1,21 @@
+# Local run against a real battery. There is no simulator: the app needs a
+# Bluetooth adapter and a JBD BMS in range, so run this on a Doovit or any
+# Linux box with BlueZ (`doover app run`).
+services:
+  device_agent:
+    image: spaneng/doover-device-agent:main
+    network_mode: host
+
+  jbd_bms_ble:
+    build: ../
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      - device_agent
+    environment:
+      - APP_KEY=test_app_key
+      - CONFIG_FP=/app/simulators/app_config.json
+      - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket
+    volumes:
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
+      - /etc/machine-id:/etc/machine-id:ro
