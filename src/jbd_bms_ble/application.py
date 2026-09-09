@@ -172,12 +172,21 @@ class JbdBmsBleApplication(Application):
     def _interaction(self, name: str):
         return self.ui.get_interactions().get(name)
 
+    @staticmethod
+    def _current_value(element):
+        """An interaction's current value, or None before the dashboard has
+        ever set one (pydoover raises KeyError in that case)."""
+        try:
+            return element.value
+        except (KeyError, AttributeError):
+            return None
+
     async def _sync_input(self, key: str, value: float):
         """Show the BMS value in its input without logging it as a user action."""
         element = self._interaction(key)
         if element is None:
             return
-        current = element.value
+        current = self._current_value(element)
         try:
             unchanged = (
                 current is not None and abs(float(current) - float(value)) < 1e-6
@@ -192,7 +201,7 @@ class JbdBmsBleApplication(Application):
         if element is None:
             return
         wanted = "on" if is_on else "off"
-        if str(element.value or "").lower() != wanted:
+        if str(self._current_value(element) or "").lower() != wanted:
             await element.set(wanted, log_update=False)
 
     async def _set_status(self, text: str):
