@@ -17,6 +17,7 @@ import logging
 from typing import Any
 
 from bleak import BleakClient, BleakScanner
+from bleak.backends.device import BLEDevice
 from bleak.exc import BleakError
 
 from . import jbd
@@ -31,15 +32,26 @@ WRITE_UUID = "0000ff02-0000-1000-8000-00805f9b34fb"
 # are enabled on a fresh connection. A short settle plus one retry covers it.
 SETTLE_AFTER_CONNECT = 0.3
 REQUEST_ATTEMPTS = 2
+SCAN_TIMEOUT = 15.0
+
+
+def bluez_device_path(address: str, adapter: str = "hci0") -> str:
+    """The D-Bus object path BlueZ gives a device it has seen since boot."""
+    return f"/org/bluez/{adapter}/dev_{address.upper().replace(':', '_')}"
 
 
 class JbdBle:
     def __init__(
-        self, address: str, connect_timeout: float = 20.0, response_timeout: float = 6.0
+        self,
+        address: str,
+        connect_timeout: float = 20.0,
+        response_timeout: float = 6.0,
+        adapter: str = "hci0",
     ):
         self.address = address
         self.connect_timeout = connect_timeout
         self.response_timeout = response_timeout
+        self.adapter = adapter
 
         self._client: BleakClient | None = None
         self._buf = bytearray()
@@ -60,29 +72,45 @@ class JbdBle:
             return
         await self.disconnect()
 
-        client = BleakClient(self.address, timeout=self.connect_timeout)
-        try:
-            await client.connect()
-        except BleakError as exc:
-            # BlueZ can only connect to a device it has seen advertise since
-            # boot. A fresh scan finds it, then the connect succeeds.
-            log.info(
-                "Direct connect to %s failed (%s); scanning first", self.address, exc
-            )
-            device = await BleakScanner.find_device_by_address(
-                self.address, timeout=15.0
-            )
-            if device is None:
-                raise jbd.JbdError(
-                    f"battery {self.address} not found in a Bluetooth scan"
-                ) from exc
-            client = BleakClient(device, timeout=self.connect_timeout)
-            await client.connect()
+        client = await self._connect_known_device()
+        if client is None:
+            client = await self._connect_after_scan()
 
         await client.start_notify(NOTIFY_UUID, self._on_notify)
         await asyncio.sleep(SETTLE_AFTER_CONNECT)
         self._client = client
         log.info("Connected to BMS at %s", self.address)
+
+    async def _connect_known_device(self) -> BleakClient | None:
+        """Connect through the device object BlueZ already holds, if any.
+
+        This needs no scan, and it is the only route that works when BlueZ is
+        still holding a link from a previous process (an app container that was
+        killed mid-poll): a connected BMS stops advertising, so a scan cannot
+        see it. bleak notices the existing link and reuses it.
+        """
+        device = BLEDevice(
+            self.address,
+            None,
+            {"path": bluez_device_path(self.address, self.adapter), "props": {}},
+        )
+        client = BleakClient(device, timeout=self.connect_timeout)
+        try:
+            await client.connect()
+        except (BleakError, TimeoutError, OSError) as exc:
+            log.info("BlueZ has no usable device object for %s (%s)", self.address, exc)
+            return None
+        return client
+
+    async def _connect_after_scan(self) -> BleakClient:
+        device = await BleakScanner.find_device_by_address(
+            self.address, timeout=SCAN_TIMEOUT
+        )
+        if device is None:
+            raise jbd.JbdError(f"battery {self.address} not found in a Bluetooth scan")
+        client = BleakClient(device, timeout=self.connect_timeout)
+        await client.connect()
+        return client
 
     async def disconnect(self) -> None:
         client, self._client = self._client, None
