@@ -1,5 +1,6 @@
 {
     "jbd_bms_ble": {
+        "icon_url": "https://cdn.jsdelivr.net/gh/getdoover/app-icons@f6ca20eca2c2d1e05184cb06bf6fee951bba40e7/icons/jbd.png",
         "name": "jbd_bms_ble",
         "display_name": "JBD Bluetooth BMS",
         "type": "DEV",
